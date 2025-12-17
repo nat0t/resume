@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% if resumes %}
+        <h2>Мои резюме:</h2>
+            <ul>
+                {% for resume in resumes %}
+                    <li>
+                        <strong><a href="{{ url_for('resume', resume_id=resume.id) }}">{{ resume.name }}</a></strong>
+                        <div class="buttons">
+                            <a href="{{ url_for('delete_resume', resume_id=resume.id) }}" class="button delete-button"></a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+    {% else %}
+        <h2>Не загружено ни одного резюме, может быть стоит добавить?</h2>
+    {% endif %}
+        <h2>Добавить новое:</h2>
+        <form class="" action="" method="post">
+            {{ form.csrf_token() }}
+            {% for field in form if field.name != "csrf_token" %}
+                <div class="form-group">
+                    {{ field.label() }}
+                        {{ field }}
+                            {% for error in field.errors %}
+                                {{ error }}
+                            {% endfor %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="submit-button">Создать</button>
+        </form>
+{% endblock %}

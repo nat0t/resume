@@ -1,0 +1,9 @@
+<nav class="menu" aria-label="Главное меню">
+    <ul>
+        <li><a href="{{ url_for("personal", resume_id=resume_id) }}" class={{ "active" if active_page == "personal" }}>Личная информация</a></li>
+        <li><a href="{{ url_for("specialization") }}" class={{ "active" if active_page == "specialization" }}>Специализация</a></li>
+        <li><a href="{{ url_for("experience") }}" class={{ "active" if active_page == "experience" }}>Опыт работы</a></li>
+        <li><a href="{{ url_for("education") }}" class={{ "active" if active_page == "education" }}>Образование</a></li>
+        <li><a href="{{ url_for("contact") }}" class={{ "active" if active_page == "contact" }}>Контакты</a></li>
+    </ul>
+</nav>

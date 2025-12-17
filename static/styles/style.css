@@ -1,4 +1,4 @@
-/* --- Сброс и базовые стили --- */
+/* Сброс и базовые стили */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -19,7 +19,7 @@ body {
     flex-direction: column;
 }
 
-/* --- Шапка --- */
+/* Шапка */
 .header {
     background-color: white;
     border-bottom: 1px solid #e5e5e5;
@@ -31,6 +31,19 @@ body {
     font-size: 24px;
     color: #0073e6;
     user-select: none;
+    display: flex;
+    justify-content: space-between;
+}
+
+.logout-link {
+  margin-left: auto;
+  text-decoration: none;
+  color: #0073e6;
+  font-size: 18px;
+}
+
+.logout-link:hover {
+  color: #000;
 }
 
 /* --- Основная обёртка: меню + контент --- */

@@ -1,0 +1,322 @@
+from datetime import datetime
+from urllib.parse import urlsplit
+
+from flask import Flask, render_template, redirect, url_for, flash, request
+from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
+from flask_script import Manager
+from flask_sqlalchemy import SQLAlchemy
+
+from forms import PersonalForm, LoginForm, ResumeForm
+
+app = Flask(__name__)
+app.debug = True
+app.config['SECRET_KEY'] = 'a really really really really long secret key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///c:/Development/resume/database.db'
+
+manager = Manager(app)
+db = SQLAlchemy(app)
+login = LoginManager(app)
+login.login_view = 'login'
+
+
+@login.user_loader
+def load_user(id):
+  return db.session.get(User, int(id))
+
+
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    resumes = db.relationship('Resume', backref='user', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return self.username
+
+
+class Resume(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    personal = db.relationship('Personal', backref='resume', uselist=False, cascade='all, delete-orphan')
+    specialization = db.relationship('Specialization', backref='resume', uselist=False, cascade='all, delete-orphan')
+    experience = db.relationship('Experience', backref='resume', uselist=False, cascade='all, delete-orphan')
+    education = db.relationship('Education', backref='resume', uselist=False, cascade='all, delete-orphan')
+    contact = db.relationship('Contact', backref='resume', uselist=False, cascade='all, delete-orphan')
+
+    __tablename__ = 'resumes'
+
+    def __repr__(self):
+        return self.name
+
+
+class Personal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(200))
+    surname = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+    patronymic = db.Column(db.String(50))
+    gender = db.Column(db.String(10), nullable=False)
+    birthdate = db.Column(db.DateTime())
+    location = db.Column(db.String(100))
+    citizenship = db.Column(db.String(20))
+    about = db.Column(db.String(100))
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+
+    __tablename__ = 'personal'
+    __table_args__ = (
+        db.CheckConstraint("gender IN ('мужской', 'женский')", name='check_gender_validity'),
+    )
+
+    def __repr__(self):
+        return f'{self.surname} {self.name}'
+
+
+class Specialization(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    readiness = db.Column(db.String(21), default='рассмотрю предложения')
+    salary = db.Column(db.Integer)
+    slogan = db.Column(db.String(80))
+    specialization = db.Column(db.String(27), nullable=False)
+    grade = db.Column(db.String(16), nullable=False)
+    skills = db.Column(db.String(255), nullable=False)
+    languages = db.Column(db.String(50))
+    remote_ready = db.Column(db.Boolean, default=False)
+    relocation_ready = db.Column(db.Boolean, default=False)
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+
+
+    __tablename__ = 'specializations'
+    __table_args__ = (
+        db.CheckConstraint(
+            "readiness in ('не ищу работу', 'ищу работу', 'рассмотрю предложения')",
+            name='check_readiness_validity',
+        ),
+        db.CheckConstraint(
+            "specialization in ('Разработка', 'Тестирование', 'Аналитика', 'Дизайн', 'Менеджмент', "
+            "'Информационная безопасность', 'Искусственный интеллект')",
+            name='check_specialization_validity',
+        ),
+        db.CheckConstraint(
+            "grade in ('не указана', 'стажёр (intern)', 'младший (junior)', 'средний (middle)', "
+            "'старший (senior)', 'ведущий (lead)')",
+            name='check_grade_validity',
+        ),
+    )
+
+    def __repr__(self):
+        return self.slogan
+
+
+class Experience(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    jobs = db.relationship('Job', backref='experience', cascade='all, delete-orphan')
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+
+    __tablename__ = 'experiences'
+
+    def __repr__(self):
+        return ' | '.join([job for job in self.jobs])
+
+
+class Job(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), nullable=False)
+    location = db.Column(db.String(255))
+    specialization = db.Column(db.String(27), nullable=False)
+    grade = db.Column(db.String(16), nullable=False)
+    position = db.Column(db.String(30))
+    start = db.Column(db.Date(), nullable=False)
+    finish = db.Column(db.Date())
+    about = db.Column(db.String(255))
+    skills = db.Column(db.String(255))
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    experience_id = db.Column(db.Integer, db.ForeignKey('experiences.id'))
+
+    __tablename__ = 'jobs'
+    __table_args__ = (
+        db.CheckConstraint(
+            "specialization in ('Разработка', 'Тестирование', 'Аналитика', 'Дизайн', 'Менеджмент', "
+            "'Информационная безопасность', 'Искусственный интеллект')",
+            name='check_specialization_validity',
+        ),
+        db.CheckConstraint(
+            "grade in ('не указана', 'стажёр (intern)', 'младший (junior)', 'средний (middle)', "
+            "'старший (senior)', 'ведущий (lead)')",
+            name='check_grade_validity',
+        ),
+    )
+
+    def __repr__(self):
+        return self.name
+
+
+class Education(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    schools = db.relationship('School', backref='education', cascade='all, delete-orphan')
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+
+    __tablename__ = 'educations'
+
+    def __repr__(self):
+        return ' | '.join([school for school in self.schools])
+
+
+class School(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), nullable=False)
+    course = db.Column(db.String(50), nullable=False)
+    start = db.Column(db.Date(), nullable=False)
+    finish = db.Column(db.Date(), nullable=False)
+    practice = db.Column(db.String(255))
+    certificate = db.Column(db.String(200))
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    education_id = db.Column(db.Integer, db.ForeignKey('educations.id'))
+
+    __tablename__ = 'schools'
+
+    def __repr__(self):
+        return self.name
+
+
+class Contact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(30), unique=True)
+    email = db.Column(db.String(120), unique=True)
+    telegram = db.Column(db.String(30), unique=True)
+    sn_profile = db.Column(db.String(120), unique=True)
+    created_on = db.Column(db.DateTime(), default=datetime.now)
+    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+
+    __tablename__ = 'contacts'
+
+    def __repr__(self):
+        return self.phone or self.email or self.telegram or self.sn_profile
+
+
+@app.route('/login/', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(User).filter_by(username=form.username.data).first()
+
+        if user:
+            if user.password == form.password.data:
+                login_user(user, remember=form.username)
+                # Перенаправление на страницу "next"
+                next_page = request.args.get('next')
+                if not next_page or urlsplit(next_page).netloc != '':
+                    next_page = url_for('index')
+
+                return redirect(next_page)
+            else:
+                flash('Неверный пароль. Попробуйте снова.', 'alert-danger')
+        else:
+            db.session.add(User(username=form.username.data, password=form.password.data))
+            db.session.commit()
+
+    return render_template('login.html', form=form)
+
+
+@app.route('/logout/')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
+@app.route('/', methods=['GET', 'POST'])
+@login_required
+def index():
+    resumes = db.session.query(Resume).filter_by(user_id=current_user.get_id()).all()
+    form = ResumeForm()
+
+    if form.validate_on_submit():
+        db.session.add(Resume(name=form.name.data, user_id=current_user.get_id()))
+        db.session.commit()
+
+    return render_template('index.html', resumes=resumes, form=form)
+
+
+@app.route('/resumes/<int:resume_id>/')
+@login_required
+def resume(resume_id):
+    return redirect(url_for('personal', resume_id=resume_id))
+
+
+@app.route('/resumes/<int:resume_id>/personal/', methods=['GET', 'POST'])
+@login_required
+def personal(resume_id):
+    form = PersonalForm()
+    # data = Personal.query.get(1)
+    # if data:
+    #     form.surname.render_kw = {'placeholder': data.surname}
+    #     form.name.render_kw = {'placeholder': data.name}
+    #     form.patronymic.render_kw = {'placeholder': data.patronymic}
+    #     form.gender.render_kw = {'placeholder': data.gender}
+    #     form.birthdate.render_kw = {'placeholder': data.birthdate}
+    #     form.location.render_kw = {'placeholder': data.location}
+    #     form.citizenship.render_kw = {'placeholder': data.citizenship}
+    #     form.about.render_kw = {'placeholder': data.about}
+
+    if form.validate_on_submit():
+        surname = form.surname.data
+        name = form.name.data
+        patronymic = form.patronymic.data
+        gender = form.gender.data
+        birthdate = form.birthdate.data
+        location = form.location.data
+        citizenship = form.citizenship.data
+        about = form.about.data
+
+        personal = Personal()
+        print(f'Форма отправлена! {name}')
+        return redirect(url_for('personal', resume_id=resume_id))
+
+    return render_template('personal.html', resume_id=resume_id, active_page='personal', form=form)
+
+
+@app.route('/education/')
+@login_required
+def education():
+    return render_template('education.html', active_page='education')
+
+
+@app.route('/experience/')
+@login_required
+def experience():
+    return render_template('experience.html', active_page='experience')
+
+
+@app.route('/specialization/')
+@login_required
+def specialization():
+    return render_template('specialization.html', active_page='specialization')
+
+
+@app.route('/contact/')
+@login_required
+def contact():
+    return render_template('contact.html', active_page='contact')
+
+
+if __name__ == '__main__':
+    manager.run()
