@@ -35,10 +35,18 @@ body {
     justify-content: space-between;
 }
 
+.header>a {
+    text-decoration: none;
+    color: #0073e6;
+}
+
+.header>a:visited {
+    text-decoration: none;
+    color: #0073e6;
+}
+
 .logout-link {
   margin-left: auto;
-  text-decoration: none;
-  color: #0073e6;
   font-size: 18px;
 }
 
@@ -46,7 +54,7 @@ body {
   color: #000;
 }
 
-/* --- Основная обёртка: меню + контент --- */
+/* Основная обёртка */
 .main-wrapper {
     flex: 1;
     display: flex;

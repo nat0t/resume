@@ -32,10 +32,18 @@ body {
     justify-content: space-between;
 }
 
+.header>a {
+    text-decoration: none;
+    color: #0073e6;
+}
+
+.header>a:visited {
+    text-decoration: none;
+    color: #0073e6;
+}
+
 .logout-link {
   margin-left: auto;
-  text-decoration: none;
-  color: #0073e6;
   font-size: 18px;
 }
 

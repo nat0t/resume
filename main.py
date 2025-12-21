@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from urllib.parse import urlsplit
 
@@ -5,6 +6,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.utils import secure_filename
 
 from forms import PersonalForm, LoginForm, ResumeForm
 
@@ -39,7 +41,7 @@ class User(UserMixin, db.Model):
 
 class Resume(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -62,7 +64,7 @@ class Personal(db.Model):
     name = db.Column(db.String(50), nullable=False)
     patronymic = db.Column(db.String(50))
     gender = db.Column(db.String(10), nullable=False)
-    birthdate = db.Column(db.DateTime())
+    birthdate = db.Column(db.Date())
     location = db.Column(db.String(100))
     citizenship = db.Column(db.String(20))
     about = db.Column(db.String(100))
@@ -72,7 +74,7 @@ class Personal(db.Model):
 
     __tablename__ = 'personal'
     __table_args__ = (
-        db.CheckConstraint("gender IN ('мужской', 'женский')", name='check_gender_validity'),
+        db.CheckConstraint("gender IN ('male', 'female')", name='check_gender_validity'),
     )
 
     def __repr__(self):
@@ -210,6 +212,11 @@ class Contact(db.Model):
         return self.phone or self.email or self.telegram or self.sn_profile
 
 
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -246,50 +253,85 @@ def logout():
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    resumes = db.session.query(Resume).filter_by(user_id=current_user.get_id()).all()
     form = ResumeForm()
 
     if form.validate_on_submit():
         db.session.add(Resume(name=form.name.data, user_id=current_user.get_id()))
         db.session.commit()
 
+    resumes = db.session.query(Resume).filter_by(user_id=current_user.get_id()).all()
+
     return render_template('index.html', resumes=resumes, form=form)
 
 
-@app.route('/resumes/<int:resume_id>/')
-@login_required
-def resume(resume_id):
-    return redirect(url_for('personal', resume_id=resume_id))
+# @app.route('/resume/<int:resume_id>/')
+# @login_required
+# def resume(resume_id):
+#     return redirect(url_for('personal', resume_id=resume_id))
 
 
-@app.route('/resumes/<int:resume_id>/personal/', methods=['GET', 'POST'])
+@app.route('/edit_resume/<int:resume_id>/', methods=['GET', 'POST'])
 @login_required
-def personal(resume_id):
+def edit_resume(resume_id):
+    personal = db.session.query(Personal).filter_by(resume_id=resume_id).first()
+    if not personal:
+        return redirect(url_for('create_personal', resume_id=resume_id))
+
+    return redirect(url_for('edit_personal', resume_id=resume_id))
+
+
+@app.route('/delete_resume/<int:resume_id>/', methods=['GET', 'POST'])
+@login_required
+def delete_resume(resume_id):
+    db.session.query(Resume).filter_by(user_id=current_user.get_id(), id=resume_id).delete()
+    db.session.commit()
+
+    return redirect(url_for('index'))
+
+
+@app.route('/resumes/<int:resume_id>/create_personal/', methods=['GET', 'POST'])
+@login_required
+def create_personal(resume_id):
     form = PersonalForm()
-    # data = Personal.query.get(1)
-    # if data:
-    #     form.surname.render_kw = {'placeholder': data.surname}
-    #     form.name.render_kw = {'placeholder': data.name}
-    #     form.patronymic.render_kw = {'placeholder': data.patronymic}
-    #     form.gender.render_kw = {'placeholder': data.gender}
-    #     form.birthdate.render_kw = {'placeholder': data.birthdate}
-    #     form.location.render_kw = {'placeholder': data.location}
-    #     form.citizenship.render_kw = {'placeholder': data.citizenship}
-    #     form.about.render_kw = {'placeholder': data.about}
 
     if form.validate_on_submit():
-        surname = form.surname.data
-        name = form.name.data
-        patronymic = form.patronymic.data
-        gender = form.gender.data
-        birthdate = form.birthdate.data
-        location = form.location.data
-        citizenship = form.citizenship.data
-        about = form.about.data
+        data = {field: value for field, value in form.data.items() if field not in ('csrf_token', 'submit')}
+        personal = Personal(resume_id=resume_id, **data)
+        db.session.add(personal)
+        db.session.commit()
 
-        personal = Personal()
-        print(f'Форма отправлена! {name}')
-        return redirect(url_for('personal', resume_id=resume_id))
+        return redirect(url_for('edit_personal', resume_id=resume_id))
+
+    return render_template('personal.html', resume_id=resume_id, form=form)
+
+
+@app.route('/resumes/<int:resume_id>/edit_personal/', methods=['GET', 'POST'])
+@login_required
+def edit_personal(resume_id):
+    personal = db.session.query(Personal).filter_by(resume_id=resume_id).first()
+
+    form = PersonalForm()
+    # Заполнение формы значениями из БД
+    form.about.data = personal.about
+    for field_name, value in personal.__dict__.items():
+        if field_name in form.data:
+            field = getattr(form, field_name)
+
+            if field.render_kw:
+                field.render_kw['value'] = value
+            else:
+                field.render_kw = {'value': value}
+
+    if form.validate_on_submit():
+        # file = request.files['image']
+        # filename = secure_filename(file.filename)
+        # UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
+        # file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+        form.populate_obj(personal)
+        db.session.commit()
+
+        return redirect(url_for('edit_personal', resume_id=resume_id))
 
     return render_template('personal.html', resume_id=resume_id, active_page='personal', form=form)
 

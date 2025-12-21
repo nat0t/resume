@@ -4,13 +4,13 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>К-Резюме</title>
-        <link rel="stylesheet" href="{{ url_for("static", filename="styles/base.css") }}">
-        <link rel="stylesheet" href="{{ url_for("static", filename="styles/main.css") }}">
-        <link rel="stylesheet" href="{{ url_for("static", filename="styles/form.css") }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles/form.css') }}">
     </head>
     <body>
         <header class="header">
-            <div class="title">К-Резюме</div>
+            <a href="{{ url_for('index') }}">К-Резюме</a>
             <a href="{{ url_for('logout') }}" class="logout-link">Выход</a>
         </header>
         <div class="main-wrapper">

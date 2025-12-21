@@ -1,15 +1,12 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
-}
 h2 {
     margin-bottom: 20px;
 }
+
 ul {
     list-style: none;
     padding: 0;
 }
+
 li {
     background-color: #fff;
     padding: 20px;
@@ -19,22 +16,44 @@ li {
     transition: box-shadow 0.2s ease;
     max-width: 50%;
 }
+
 li:hover {
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
-strong {
-    font-size: 20px;
-    display: block;
-    margin-bottom: 10px;
+
+/* Список резюме */
+.resume-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
 }
-a {
+
+.resume-name {
+    font-weight: bold;
+}
+
+.buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    padding: 4px 8px;
+    background-color: #007bff;
+    color: #fff;
     text-decoration: none;
-    color: #2196F3;
-    margin-right: 10px;
-    font-weight: 500;
+    border-radius: 4px;
+    font-size: 14px;
 }
-a:hover {
-    text-decoration: underline;
+
+.delete-btn {
+    background-color: #e53935;
+}
+
+.btn:hover {
+    opacity: 0.8;
 }
 
 /* Адаптивность */
@@ -42,11 +61,37 @@ a:hover {
     body {
         margin: 20px;
     }
+
     h1 {
         font-size: 24px;
     }
+
     li {
         padding: 15px;
         max-width: 100%;
+    }
+
+    .resume-item {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .resume-name {
+        max-width: 100%;
+        word-break: break-word;
+        margin-bottom: 8px;
+    }
+
+    .buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
     }
 }

@@ -5,10 +5,11 @@
         <h2>Мои резюме:</h2>
             <ul>
                 {% for resume in resumes %}
-                    <li>
-                        <strong><a href="{{ url_for('resume', resume_id=resume.id) }}">{{ resume.name }}</a></strong>
+                    <li class="resume-item">
+                        <span class="resume-name">{{ resume.name }}</span>
                         <div class="buttons">
-                            <a href="{{ url_for('delete_resume', resume_id=resume.id) }}" class="button delete-button"></a>
+                            <a href="{{ url_for('edit_resume', resume_id=resume.id) }}" class="btn">Изменить</a>
+                            <a href="{{ url_for('delete_resume', resume_id=resume.id) }}" class="btn delete-btn">Удалить</a>
                         </div>
                     </li>
                 {% endfor %}
@@ -17,17 +18,17 @@
         <h2>Не загружено ни одного резюме, может быть стоит добавить?</h2>
     {% endif %}
         <h2>Добавить новое:</h2>
-        <form class="" action="" method="post">
+        <form action="" method="post">
             {{ form.csrf_token() }}
-            {% for field in form if field.name != "csrf_token" %}
+            {% for field in form if field.name not in ('csrf_token', 'submit') %}
                 <div class="form-group">
                     {{ field.label() }}
-                        {{ field }}
-                            {% for error in field.errors %}
-                                {{ error }}
-                            {% endfor %}
+                    {{ field() }}
+                    {% for error in field.errors %}
+                        {{ error() }}
+                    {% endfor %}
                 </div>
             {% endfor %}
-            <button type="submit" class="submit-button">Создать</button>
+            {{ form.submit() }}
         </form>
 {% endblock %}
