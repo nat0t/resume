@@ -76,7 +76,7 @@ class Personal(db.Model):
     about = db.Column(db.String(100))
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
-    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id', ondelete='CASCADE'))
 
     __tablename__ = 'personal'
     __table_args__ = (
@@ -301,12 +301,10 @@ def delete_resume(resume_id):
 @app.route('/resumes/<int:resume_id>/create_personal/', methods=['GET', 'POST'])
 @login_required
 def create_personal(resume_id):
-    form = PersonalForm()
+    personal = Personal(resume_id=resume_id)
+    form = PersonalForm(request.form, obj=personal)
 
     if form.validate_on_submit():
-        data = {field: value for field, value in form.data.items() if field not in ('csrf_token', 'submit')}
-        personal = Personal(resume_id=resume_id, **data)
-
         file = request.files['image']
 
         if file and is_allowed_file(file.filename):
