@@ -33,6 +33,16 @@
     outline: none;
 }
 
+/* Для чекбоксов */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-container input[type='checkbox'] {
+    margin-right: 8px; /* отступ между чекбоксом и текстом */
+}
+
 /* Поля логина */
 .login-field {
     max-width: 100%;

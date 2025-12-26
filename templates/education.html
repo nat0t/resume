@@ -1,14 +1,21 @@
 {% extends "base_admin.html" %}
 
 {% block content %}
-    <h3>FastLane</h3>
-    <h5>FastLane, HCIA Storage</h5>
-    <p>Сентябрь 2020—Сентябрь 2020</p>
-    <h5>FastLane, Implementing Cisco IP Switched Networks (SWITCH)</h5>
-    <p>Сентябрь 2016—Сентябрь 2016</p>
-    <h5>FastLane, Interconnecting Cisco Networking Devices Part 2 (ICND2)</h5>
-    <p>Сентябрь 2015—Сентябрь 2015</p>
-    <h3>CompTek</h3>
-    <h5>CompTek, Курс Avaya Aura SM и протокол SIP</h5>
-    <p>Сентябрь 2019—Сентябрь 2019</p>
+    {% if schools %}
+        <h2>Опыт работы:</h2>
+            <ul>
+                {% for school in schools %}
+                    <li class="resume-item">
+                        <span class="resume-name">{{ school['name'] }}</span>
+                        <div class="buttons">
+                            <a href="{{ url_for('edit_school', resume_id=resume_id, education_id=education_id, school_id=school['id']) }}" class="btn">Изменить</a>
+                            <a href="{{ url_for('delete_school', resume_id=resume_id, education_id=education_id, school_id=school['id']) }}" class="btn delete-btn">Удалить</a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+    {% else %}
+        <h2>Нет образования. Может пришла пора поучиться?</h2>
+    {% endif %}
+        <a href="{{ url_for('create_school', resume_id=resume_id, education_id=education_id) }}" class="btn">Добавить образование</a>
 {% endblock %}

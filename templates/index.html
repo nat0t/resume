@@ -25,7 +25,7 @@
                     {{ field.label() }}
                     {{ field() }}
                     {% for error in field.errors %}
-                        {{ error() }}
+                        {{ error }}
                     {% endfor %}
                 </div>
             {% endfor %}

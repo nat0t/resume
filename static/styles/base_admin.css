@@ -131,6 +131,22 @@ body {
     margin-bottom: 15px;
 }
 
+/* Фотография */
+.image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.image-container img {
+    max-width: 50%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
 /* --- Футер --- */
 .footer {
     background-color: white;
@@ -153,5 +169,11 @@ body {
     .menu {
         width: 100%;
         margin-bottom: 20px;
+    }
+    .image-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        object-fit: contain;
     }
 }

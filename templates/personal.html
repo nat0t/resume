@@ -2,6 +2,11 @@
 
 {% block content %}
     <form action="" method="post" enctype="multipart/form-data">
+        {% if image %}
+            <div class="image-container">
+                <img src="{{ url_for('static', filename='uploads/' + image) }}" alt="Фотография">
+            </div>
+        {% endif %}
         {{ form.csrf_token() }}
 
         {% for field in form if field.name not in ('csrf_token', 'submit') %}
@@ -9,7 +14,7 @@
             {{ field.label() }}
             {{ field() }}
             {% for error in field.errors %}
-                {{ error() }}
+                {{ error }}
             {% endfor %}
         </div>
         {% endfor %}
