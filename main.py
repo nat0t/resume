@@ -6,6 +6,8 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from werkzeug.utils import secure_filename
 
 from forms import PersonalForm, LoginForm, ResumeForm, SpecializationForm, ContactForm, JobForm, SchoolForm
@@ -100,7 +102,7 @@ class Specialization(db.Model):
     relocation_ready = db.Column(db.Boolean, default=False)
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
-    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id', ondelete='CASCADE'))
 
 
     __tablename__ = 'specializations'
@@ -128,7 +130,7 @@ class Experience(db.Model):
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
     jobs = db.relationship('Job', backref='experience', cascade='all, delete-orphan')
-    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id', ondelete='CASCADE'))
 
     __tablename__ = 'experiences'
 
@@ -149,7 +151,7 @@ class Job(db.Model):
     skills = db.Column(db.String(255))
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
-    experience_id = db.Column(db.Integer, db.ForeignKey('experiences.id'))
+    experience_id = db.Column(db.Integer, db.ForeignKey('experiences.id', ondelete='CASCADE'))
 
     __tablename__ = 'jobs'
     __table_args__ = (
@@ -172,7 +174,7 @@ class Education(db.Model):
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
     schools = db.relationship('School', backref='education', cascade='all, delete-orphan')
-    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id', ondelete='CASCADE'))
 
     __tablename__ = 'educations'
 
@@ -189,7 +191,7 @@ class School(db.Model):
     practice = db.Column(db.String(255))
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
-    education_id = db.Column(db.Integer, db.ForeignKey('educations.id'))
+    education_id = db.Column(db.Integer, db.ForeignKey('educations.id', ondelete='CASCADE'))
 
     __tablename__ = 'schools'
 
@@ -205,7 +207,7 @@ class Contact(db.Model):
     sn_profile = db.Column(db.String(120), unique=True)
     created_on = db.Column(db.DateTime(), default=datetime.now)
     updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
-    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'))
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id', ondelete='CASCADE'))
 
     __tablename__ = 'contacts'
 
@@ -292,7 +294,8 @@ def edit_resume(resume_id):
 @app.route('/delete_resume/<int:resume_id>/', methods=['GET', 'POST'])
 @login_required
 def delete_resume(resume_id):
-    db.session.query(Resume).filter_by(user_id=current_user.get_id(), id=resume_id).delete()
+    resume = Resume.query.filter_by(user_id=current_user.get_id(), id=resume_id).first()
+    db.session.delete(resume)
     db.session.commit()
 
     return redirect(url_for('index'))
@@ -302,9 +305,11 @@ def delete_resume(resume_id):
 @login_required
 def create_personal(resume_id):
     personal = Personal(resume_id=resume_id)
+    db.session.add(personal)
     form = PersonalForm(request.form, obj=personal)
 
     if form.validate_on_submit():
+        form.populate_obj(personal)
         file = request.files['image']
 
         if file and is_allowed_file(file.filename):
@@ -312,7 +317,6 @@ def create_personal(resume_id):
             file.save(os.path.join(UPLOAD_FOLDER, filename))
             personal.image = filename
 
-        db.session.add(personal)
         db.session.commit()
 
         return redirect(url_for('edit_personal', resume_id=resume_id))
@@ -359,12 +363,12 @@ def edit_personal(resume_id):
 @app.route('/resumes/<int:resume_id>/create_specialization/', methods=['GET', 'POST'])
 @login_required
 def create_specialization(resume_id):
-    form = SpecializationForm()
+    specialization = Specialization(resume_id=resume_id)
+    db.session.add(specialization)
+    form = SpecializationForm(request.form, obj=specialization)
 
     if form.validate_on_submit():
-        data = {field: value for field, value in form.data.items() if field not in ('csrf_token', 'submit')}
-        specialization = Specialization(resume_id=resume_id, **data)
-        db.session.add(specialization)
+        form.populate_obj(specialization)
         db.session.commit()
 
         return redirect(url_for('edit_specialization', resume_id=resume_id))
@@ -380,17 +384,7 @@ def edit_specialization(resume_id):
     if not specialization:
         return redirect(url_for('create_specialization', resume_id=resume_id))
 
-    form = SpecializationForm()
-    # Заполнение формы значениями из БД
-    form.skills.data = specialization.skills
-    for field_name, value in specialization.__dict__.items():
-        if field_name in form.data:
-            field = getattr(form, field_name)
-
-            if field.render_kw:
-                field.render_kw['value'] = value
-            else:
-                field.render_kw = {'value': value}
+    form = SpecializationForm(request.form, obj=specialization)
 
     if form.validate_on_submit():
         form.populate_obj(specialization)
@@ -486,7 +480,8 @@ def edit_job(resume_id, experience_id, job_id):
 @app.route('/resumes/<int:resume_id>/edit_experience/<int:experience_id>/delete_job/<int:job_id>/', methods=['GET', 'POST'])
 @login_required
 def delete_job(resume_id, experience_id, job_id):
-    db.session.query(Job).filter_by(id=job_id).delete()
+    job = Job.query.filter_by(id=job_id).first()
+    db.session.delete(job)
     db.session.commit()
 
     return redirect(url_for('edit_experience', resume_id=resume_id))
@@ -570,7 +565,8 @@ def edit_school(resume_id, education_id, school_id):
 @app.route('/resumes/<int:resume_id>/edit_experience/<int:education_id>/delete_job/<int:school_id>/', methods=['GET', 'POST'])
 @login_required
 def delete_school(resume_id, education_id, school_id):
-    db.session.query(School).filter_by(id=school_id).delete()
+    school = School.query.filter_by(id=school_id).first()
+    db.session.delete(school)
     db.session.commit()
 
     return redirect(url_for('edit_education', resume_id=resume_id))
