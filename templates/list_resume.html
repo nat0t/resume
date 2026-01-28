@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="resume-container">
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h3 class="card-title">Личная информация</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-body">
+            {% with data = resume.personal %}
+                {% if data.image %}
+                    <div class="image-container">
+                        <img src="{{ url_for('static', filename='uploads/' + data.image) }}" alt="Фотография">
+                    </div>
+                {% endif %}
+                <p>Имя: {{ data.surname }} {{ data.name }} {{ data.patronymic }}</p>
+                <p>Пол: {{ selectors['gender'].get(data.gender) }}</p>
+                <p>Дата рождения: {{ data.birthdate.strftime('%d.%m.%Y') }}</p>
+                <p>Местоположение: {{ data.location }}</p>
+                <p>Гражданство: {{ data.citizenship }}</p>
+                <p>О себе: {{ data.about }}</p>
+            {% endwith %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h3 class="card-title">Специализация</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-body">
+            {% with data = resume.specialization %}
+                <p>Готовность к работе: {{ selectors['readiness'].get(data.readiness) }}</p>
+                <p>Ожидаемое вознаграждение: {{ data.salary }} руб.</p>
+                <p>Коротко о себе: {{ data.slogan }}</p>
+                <p>Специализация: {{ selectors['specialization'].get(data.specialization) }}</p>
+                <p>Квалификация: {{ selectors['grade'].get(data.grade) }}</p>
+                <p>Профессиональные навыки: {{ data.skills }}</p>
+                <p>Знание языков: {{ data.languages }}</p>
+                <p>Готов к удаленной работе: {{ selectors['yes_no'].get(data.remote_ready) }}</p>
+                <p>Готов к переезду: {{ selectors['yes_no'].get(data.relocation_ready) }}</p>
+            {% endwith %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h3 class="card-title">Опыт работы</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-body">
+            {% for data in resume.experience.jobs %}
+                <ul>
+                    <li>
+                        <p>Название компании: {{ data.name }}</p>
+                        <p>Местоположение компании: {{ data.location }}</p>
+                        <p>Специализация: {{ selectors['specialization'].get(data.specialization) }}</p>
+                        <p>Квалификация: {{ selectors['grade'].get(data.grade) }}</p>
+                        <p>Должность в компании: {{ data.position }}</p>
+                        <p>Начало работы: {{ data.start.strftime('%d.%m.%Y') }}</p>
+                        <p>Окончание работы: {{ data.finish.strftime('%d.%m.%Y') }}</p>
+                        <p>Обязанности и достижения: {{ data.about }}</p>
+                        <p>Применяемые навыки: {{ data.skills }}</p>
+                    </li>
+                </ul>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h3 class="card-title">Образование</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-body">
+            {% for data in resume.education.schools %}
+                <ul>
+                    <li>
+                        <p>Название учебного заведения: {{ data.name }}</p>
+                        <p>Название пройденного курса: {{ data.course }}</p>
+                        <p>Начало учебы: {{ data.start.strftime('%d.%m.%Y') }}</p>
+                        <p>Завершение учебы: {{ data.finish.strftime('%d.%m.%Y') }}</p>
+                    </li>
+                </ul>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <h3 class="card-title">Контакты</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-body">
+            {% with data = resume.contact %}
+                <p>Мобильный телефон: {{ data.phone }}</p>
+                <p>Электронная почта: {{ data.email }}</p>
+                <p>Telegram: {{ data.telegram }}</p>
+                <p>Личный сайт или профиль в соцсетях: {{ data.sn_profile }}</p>
+            {% endwith %}
+        </div>
+    </div>
+</div>
+{% endblock %}

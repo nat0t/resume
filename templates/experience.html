@@ -5,8 +5,8 @@
         <h2>Опыт работы:</h2>
             <ul>
                 {% for job in jobs %}
-                    <li class="resume-item">
-                        <span class="resume-name">{{ job['name'] }}</span>
+                    <li class="list-item">
+                        <span class="list-name">{{ job['name'] }}</span>
                         <div class="buttons">
                             <a href="{{ url_for('edit_job', resume_id=resume_id, experience_id=experience_id, job_id=job['id']) }}" class="btn">Изменить</a>
                             <a href="{{ url_for('delete_job', resume_id=resume_id, experience_id=experience_id, job_id=job['id']) }}" class="btn delete-btn">Удалить</a>

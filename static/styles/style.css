@@ -1,0 +1,65 @@
+/* Общий стиль контейнера */
+.resume-container {
+  max-width: 800px;
+  margin: 20px auto;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Карточки */
+.card {
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  background: #fff;
+  transition: box-shadow 0.3s;
+}
+
+/* Заголовки карточек */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  background-color: #f7f7f7;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.card-header:hover {
+  background-color: #eaeaea;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Стиль стрелки */
+.toggle-icon {
+  font-size: 14px;
+  transition: transform 0.3s;
+}
+
+/* Внутреннее содержимое карточки */
+.card-body {
+  padding: 15px 20px;
+  transition: max-height 0.3s ease, padding 0.3s;
+  overflow: hidden;
+}
+
+/* Скрываем содержимое при закрытии (по умолчанию открыто) */
+.card.collapsed .card-body {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Поворот стрелки при закрытии */
+.card.collapsed .toggle-icon {
+  transform: rotate(180deg);
+}

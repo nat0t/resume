@@ -72,7 +72,23 @@ body {
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
 }
 
-/* --- Подвал --- */
+/* Фотография */
+.image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.image-container img {
+    max-width: 50%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+/* Подвал */
 .footer {
     background-color: white;
     border-top: 1px solid #e5e5e5;
@@ -94,5 +110,11 @@ body {
     .menu {
         width: 100%;
         margin-bottom: 20px;
+    }
+    .image-container img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        object-fit: contain;
     }
 }

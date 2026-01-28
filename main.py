@@ -6,8 +6,6 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
 from werkzeug.utils import secure_filename
 
 from forms import PersonalForm, LoginForm, ResumeForm, SpecializationForm, ContactForm, JobForm, SchoolForm
@@ -222,7 +220,6 @@ def create_tables():
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
-    print(f'? {current_user.is_authenticated}')
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
@@ -235,7 +232,6 @@ def login():
                 login_user(user, remember=form.username)
                 # Перенаправление на страницу "next"
                 next_page = request.args.get('next')
-                print(next_page, urlsplit(next_page).netloc)
                 if not next_page or urlsplit(next_page).netloc != '':
                     next_page = url_for('index')
 
@@ -274,10 +270,38 @@ def index():
     return render_template('index.html', resumes=resumes, form=form)
 
 
-# @app.route('/resume/<int:resume_id>/')
-# @login_required
-# def resume(resume_id):
-#     return redirect(url_for('personal', resume_id=resume_id))
+@app.route('/list_resume/<int:resume_id>/')
+@login_required
+def list_resume(resume_id):
+    resume = db.session.query(Resume).filter_by(id=resume_id).first()
+    selectors = {
+        'gender': {'male': 'мужской', 'female': 'женский'},
+        'readiness': {
+            'not_looking': 'не ищу работу',
+            'looking': 'ищу работу',
+            'consider': 'рассмотрю предложения',
+        },
+        'specialization': {
+            'development': 'разработка',
+            'testing': 'тестирование',
+            'analytics': 'аналитика',
+            'design': 'дизайн',
+            'management': 'менеджмент',
+            'security': 'информационная безопасность',
+            'ai': 'искусственный интеллект',
+        },
+        'grade': {
+            'no': 'не указана',
+            'intern': 'стажёр',
+            'junior': 'младший',
+            'middle': 'средний',
+            'senior': 'старший',
+            'lead': 'ведущий',
+        },
+        'yes_no': {True: 'да', False: 'нет'},
+    }
+
+    return render_template('list_resume.html', resume_id=resume_id, resume=resume, selectors=selectors)
 
 
 @app.route('/edit_resume/<int:resume_id>/', methods=['GET', 'POST'])
@@ -435,34 +459,27 @@ def edit_experience(resume_id):
 @app.route('/resumes/<int:resume_id>/edit_experience/<int:experience_id>/create_job/', methods=['GET', 'POST'])
 @login_required
 def create_job(resume_id, experience_id):
-    return redirect(url_for('edit_job', resume_id=resume_id, experience_id=experience_id, job_id=0))
+    job = Job(experience_id=experience_id)
+    db.session.add(job)
+    form = JobForm(request.form, obj=job)
 
+    if form.validate_on_submit():
+        form.populate_obj(job)
+        db.session.commit()
+
+        return redirect(url_for('edit_experience', resume_id=resume_id, experience_id=experience_id, job_id=job.id))
+
+    return render_template('job.html', resume_id=resume_id, form=form)
 
 @app.route('/resumes/<int:resume_id>/edit_experience/<int:experience_id>/edit_job/<int:job_id>/', methods=['GET', 'POST'])
 @login_required
 def edit_job(resume_id, experience_id, job_id):
-    form = JobForm()
+    job = db.session.query(Job).filter_by(id=job_id).first()
 
-    if job_id != 0:
-        job = db.session.query(Job).filter_by(id=job_id).first()
-
-        # Заполнение формы значениями из БД
-        form.about.data = job.about
-        form.skills.data = job.skills
-        for field_name, value in job.__dict__.items():
-            if field_name in form.data:
-                field = getattr(form, field_name)
-
-                if field.render_kw:
-                    field.render_kw['value'] = value
-                else:
-                    field.render_kw = {'value': value}
-    else:
-        job = Job(experience_id=experience_id)
+    form = JobForm(request.form, obj=job)
 
     if form.validate_on_submit():
         form.populate_obj(job)
-        db.session.add(job)
         db.session.commit()
 
         return redirect(url_for('edit_experience', resume_id=resume_id))
@@ -522,32 +539,28 @@ def edit_education(resume_id):
 @app.route('/resumes/<int:resume_id>/edit_education/<int:education_id>/create_school/', methods=['GET', 'POST'])
 @login_required
 def create_school(resume_id, education_id):
-    return redirect(url_for('edit_school', resume_id=resume_id, education_id=education_id, school_id=0))
+    school = School(education_id=education_id)
+    db.session.add(school)
+    form = SchoolForm(request.form, obj=school)
+
+    if form.validate_on_submit():
+        form.populate_obj(school)
+        db.session.commit()
+
+        return redirect(url_for('edit_education', resume_id=resume_id, education_id=education_id, school_id=school.id))
+
+    return render_template('school.html', resume_id=resume_id, form=form)
 
 
 @app.route('/resumes/<int:resume_id>/edit_education/<int:education_id>/edit_school/<int:school_id>/', methods=['GET', 'POST'])
 @login_required
 def edit_school(resume_id, education_id, school_id):
-    form = SchoolForm()
+    school = db.session.query(School).filter_by(id=school_id).first()
 
-    if school_id != 0:
-        school = db.session.query(School).filter_by(id=school_id).first()
-
-        # Заполнение формы значениями из БД
-        for field_name, value in school.__dict__.items():
-            if field_name in form.data:
-                field = getattr(form, field_name)
-
-                if field.render_kw:
-                    field.render_kw['value'] = value
-                else:
-                    field.render_kw = {'value': value}
-    else:
-        school = School(education_id=education_id)
+    form = SchoolForm(request.form, obj=school)
 
     if form.validate_on_submit():
         form.populate_obj(school)
-        db.session.add(school)
         db.session.commit()
 
         return redirect(url_for('edit_education', resume_id=resume_id))
@@ -562,7 +575,7 @@ def edit_school(resume_id, education_id, school_id):
     )
 
 
-@app.route('/resumes/<int:resume_id>/edit_experience/<int:education_id>/delete_job/<int:school_id>/', methods=['GET', 'POST'])
+@app.route('/resumes/<int:resume_id>/edit_experience/<int:education_id>/delete_school/<int:school_id>/', methods=['GET', 'POST'])
 @login_required
 def delete_school(resume_id, education_id, school_id):
     school = School.query.filter_by(id=school_id).first()
@@ -580,12 +593,12 @@ def delete_school(resume_id, education_id, school_id):
 @app.route('/resumes/<int:resume_id>/create_contact/', methods=['GET', 'POST'])
 @login_required
 def create_contact(resume_id):
-    form = ContactForm()
+    contact = Contact(resume_id=resume_id)
+    db.session.add(contact)
+    form = ContactForm(request.form, obj=contact)
 
     if form.validate_on_submit():
-        data = {field: value for field, value in form.data.items() if field not in ('csrf_token', 'submit')}
-        contact = Specialization(resume_id=resume_id, **data)
-        db.session.add(contact)
+        form.populate_obj(contact)
         db.session.commit()
 
         return redirect(url_for('edit_contact', resume_id=resume_id))
@@ -596,21 +609,12 @@ def create_contact(resume_id):
 @app.route('/resumes/<int:resume_id>/edit_contact/', methods=['GET', 'POST'])
 @login_required
 def edit_contact(resume_id):
-    contact = db.session.query(Specialization).filter_by(resume_id=resume_id).first()
+    contact = db.session.query(Contact).filter_by(resume_id=resume_id).first()
 
     if not contact:
         return redirect(url_for('create_contact', resume_id=resume_id))
 
-    form = ContactForm()
-    # Заполнение формы значениями из БД
-    for field_name, value in contact.__dict__.items():
-        if field_name in form.data:
-            field = getattr(form, field_name)
-
-            if field.render_kw:
-                field.render_kw['value'] = value
-            else:
-                field.render_kw = {'value': value}
+    form = ContactForm(request.form, obj=contact)
 
     if form.validate_on_submit():
         form.populate_obj(contact)
